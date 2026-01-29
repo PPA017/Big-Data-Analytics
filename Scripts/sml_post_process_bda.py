@@ -15,61 +15,61 @@ centroids = (
     .mean()
     .values
 )
-
-def distanceToAssignedCentroid(X, y, centroids):
-    distances = np.zeros(X.shape[0])
-    for i in range(X.shape[0]):
-        distances[i] = np.sum((X[i] - centroids[y[i]]) ** 2)
-    return distances
-
-data['distance'] = distanceToAssignedCentroid(X, y, centroids)
-
-
 '========================================= Dataset Split (SC) ========================================= '
 
-data['misclassified'] = False
-
-
-for k in range(K):
-    cluster_distances = data[data['Cluster'] == k]['distance']
-    threshold = np.percentile(cluster_distances, 80) 
-
-    data.loc[
-        (data['Cluster'] == k) &
-        (data['distance'] > threshold),
-        'misclassified'
-    ] = True
+def ComputeSplitCriterion(X, idx, centroids):
+    m = X.shape[0]
+    num_centroids = centroids.shape[0]
+    sc_values = np.zeros(m)
     
-stable_data = data[data['misclassified'] == False].copy()
-unstable_data = data[data['misclassified'] == True].copy()
+    for i in range(m):
+        assigned_centroid = centroids[idx[i]]
+        dist_assigned = np.linalg.norm(X[i] - assigned_centroid)
+        
+        other_distances = []
+        for k in range(num_centroids):
+            if k == idx[i]:
+                continue
+            dist_other = np.linalg.norm(X[i] - centroids[k])
+            other_distances.append(dist_other)
+        
+        dist_neighbor = min(other_distances)
+        
+        if dist_neighbor == 0:
+            sc_values[i] = 0.0
+        else:
+            sc_values[i] = dist_assigned / dist_neighbor
+            
+    return sc_values            
+        
+data['SC_Score'] = ComputeSplitCriterion(X, y, centroids)
+sc_value = 0.5
 
-
+data['Misclassified'] = False
+data.loc[data['SC_Score'] > sc_value, 'Misclassified'] = True
+stable_data = data[data['Misclassified'] == False].copy()
+unstable_data = data[data['Misclassified'] == True].copy()
 '========================================= SML Train on stable Data ========================================= '
 
+if len(unstable_data) > 0:
+    X_train = stable_data[features].values
+    y_train = stable_data['Cluster'].values
+    X_test = unstable_data[features].values
 
-X_train = stable_data[features].values
-y_train = stable_data['Cluster'].values
+    classifier = RandomForestClassifier(n_estimators=200, random_state=42)
+    classifier.fit(X_train, y_train)
 
-X_test = unstable_data[features].values
-
-classifier = RandomForestClassifier(n_estimators = 200, random_state = 42)
-
-classifier.fit(X_train, y_train)
-
-unstable_data['NewCluster'] = classifier.predict(X_test)
-
+    unstable_data['NewCluster'] = classifier.predict(X_test)
+else:
+    unstable_data['NewCluster'] = unstable_data['Cluster']
 
 '========================================= Final Clusters ========================================= '
 
 stable_data['FinalCluster'] = stable_data['Cluster']
 unstable_data['FinalCluster'] = unstable_data['NewCluster']
 
-final_data = pd.concat([stable_data, unstable_data])
-final_centroids = (
-    final_data.groupby('FinalCluster')[features].mean()
-)
+final_data = pd.concat([stable_data, unstable_data]).sort_index()
 
-final_centroids.to_csv('iris_km_sml.csv', index=False)
+final_centroids = final_data.groupby('FinalCluster')[features].mean().values
 
-print('passed')
-print(final_centroids)
+final_data.to_csv('iris_kmsml_final.csv', index=False)

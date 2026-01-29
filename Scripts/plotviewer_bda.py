@@ -1,24 +1,35 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-data = pd.read_csv('iris_clustered.csv')
+df = pd.read_csv('iris_kmsml_final.csv')
 
-plt.figure(figsize=(10,6))
+plt.figure(figsize=(10, 6))
 
-scatter = plt.scatter(data['PetalLength'], 
-                      data['PetalWidth'], 
-                      c=data['Cluster'], 
-                      cmap='viridis', 
-                      marker='o', 
-                      edgecolor='k', 
-                      s=50)
+colors = ['purple', 'teal', 'gold'] 
 
-plt.title('K Means results')
-plt.xlabel('Petal length (cm)')
-plt.ylabel('Petal length (cm)')
+for i in range(3):
+    stable = df[(df['FinalCluster'] == i) & (df['Misclassified'] == False)]
+    plt.scatter(stable['PetalLength'], stable['PetalWidth'], 
+                c=colors[i], 
+                marker='o', 
+                edgecolor='k', 
+                s=60, 
+                label=f'Cluster {i} (Stable)')
+    
+    refined = df[(df['FinalCluster'] == i) & (df['Misclassified'] == True)]
+    plt.scatter(refined['PetalLength'], refined['PetalWidth'], 
+                c=colors[i], 
+                marker='x', 
+                s=100, 
+                linewidth=2, 
+                label=f'Cluster {i} (Refined)')
 
-legend1 = plt.legend(*scatter.legend_elements(), title="Clusters")
-plt.gca().add_artist(legend1)
+plt.title('KM-SML Hybrid Results: Final Clusters', fontsize=14)
+plt.xlabel('Petal Length (cm)')
+plt.ylabel('Petal Width (cm)')
 
-plt.grid(True, linestyle='--', alpha=0.6)
+plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', title="Cluster Type")
+plt.grid(True, linestyle='--', alpha=0.5)
+plt.tight_layout()
+
 plt.show()
