@@ -73,3 +73,5 @@ final_data = pd.concat([stable_data, unstable_data]).sort_index()
 final_centroids = final_data.groupby('FinalCluster')[features].mean().values
 
 final_data.to_csv('iris_kmsml_final.csv', index=False)
+
+print(final_centroids)

@@ -88,3 +88,6 @@ final_centroids = final_data.groupby('FinalCluster')[df.columns[:-3]].mean().val
 
 final_data.to_csv('dataset2_km_sml_final.csv', index=False)
 print("passed")
+
+
+print(final_centroids)

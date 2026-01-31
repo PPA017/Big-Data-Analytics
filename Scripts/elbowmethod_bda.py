@@ -48,5 +48,6 @@ plt.ylabel('Inertia')
 plt.title('Elbow Method')
 plt.grid(True)
 plt.show()
-    
+
+print(centroids)
     
